@@ -866,6 +866,11 @@ export function Book2Page() {
                       Pick your nest
                     </h2>
                   </div>
+                  <div className="flex flex-wrap items-center justify-center">
+                    <p className="text-base sm:text-lg font-display font-light text-secondary text-center">
+                      Post-Castle Decompression @ Bottom
+                    </p>
+                  </div>
                 </div>
                 <CabinSelector 
                   accommodations={accommodations || []}
