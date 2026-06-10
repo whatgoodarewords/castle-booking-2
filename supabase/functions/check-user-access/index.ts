@@ -46,16 +46,14 @@ serve(async (req) => {
     // Check if user exists in profiles table (by email)
     const { data: profileData, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('id, email, is_admin')
+      .select('id')
       .eq('email', normalizedEmail)
       .single()
 
     if (profileError || !profileData) {
       console.log(`User ${normalizedEmail} not in whitelist`)
-      return new Response(JSON.stringify({ 
-        message: 'Access denied. Please contact an administrator to be added to the whitelist.',
-        canAccess: false,
-        reason: 'not_whitelisted'
+      return new Response(JSON.stringify({
+        canAccess: false
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -63,12 +61,10 @@ serve(async (req) => {
     }
 
     // User is in whitelist!
+    // This is an unauthenticated pre-auth probe — return nothing beyond canAccess.
     console.log(`User ${normalizedEmail} is whitelisted`)
-    return new Response(JSON.stringify({ 
-      message: 'Access granted',
-      canAccess: true,
-      userId: profileData.id,
-      isAdmin: profileData.is_admin || false
+    return new Response(JSON.stringify({
+      canAccess: true
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
@@ -76,9 +72,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error:', error)
-    return new Response(JSON.stringify({ 
-      error: error.message || 'Internal server error',
-      canAccess: false 
+    return new Response(JSON.stringify({
+      canAccess: false
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
