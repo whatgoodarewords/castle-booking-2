@@ -29,6 +29,23 @@ const MOBILE_ASCII_ART = `████████╗██╗  ██╗██�
 ╚██████╔╝██║  ██║██║  ██║██████╔╝███████╗██║ ╚████║
  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═══╝`;
 
+// Prefill the login email from ?email= — the ticket-site rooms handoff falls
+// back to this page with the buyer's address when auto sign-in fails.
+function getPrefilledEmail(): string {
+  try {
+    const raw = new URLSearchParams(window.location.search).get('email') ?? '';
+    let value = raw;
+    try {
+      value = decodeURIComponent(raw);
+    } catch {
+      // Already decoded — use as-is
+    }
+    return value.trim();
+  } catch {
+    return '';
+  }
+}
+
 export function AnimatedTerminal({ onComplete }: Props) {
   const [asciiLines, setAsciiLines] = useState<string[]>([]);
   const [currentLine, setCurrentLine] = useState(0);
@@ -38,7 +55,8 @@ export function AnimatedTerminal({ onComplete }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [showLogin, setShowLogin] = useState(false);
-  const [email, setEmail] = useState('');
+  const [prefilledEmail] = useState(() => getPrefilledEmail());
+  const [email, setEmail] = useState(prefilledEmail);
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,27 +144,29 @@ export function AnimatedTerminal({ onComplete }: Props) {
     try {
       console.log('[AnimatedTerminal] Requesting code for:', normalizedEmail);
       
-      // STEP 1: Check if user is in whitelist (includes both active and pending)
-      console.log('[AnimatedTerminal] Checking whitelist status...');
-      const { data: whitelistData, error: whitelistError } = await supabase
-        .from('whitelist_all')
-        .select('email, status')
-        .eq('email', normalizedEmail)
-        .single();
+      // STEP 1: Check access via the check-user-access edge function
+      // (service role inside — anon can no longer read the guest list directly)
+      console.log('[AnimatedTerminal] Checking access...');
+      const { data: accessData, error: accessError } = await supabase.functions.invoke('check-user-access', {
+        body: { email: normalizedEmail }
+      });
 
-      if (whitelistError || !whitelistData) {
-        console.log('[AnimatedTerminal] User not in whitelist:', normalizedEmail);
-        throw new Error('Access denied. Please contact an administrator to be added to the whitelist.');
+      if (accessError || !accessData?.canAccess) {
+        console.log('[AnimatedTerminal] Access denied for:', normalizedEmail);
+        throw new Error(
+          prefilledEmail
+            ? 'Access denied. Email concierge@castle.community to get sorted.'
+            : 'Access denied. Please contact an administrator to be added to the whitelist.'
+        );
       }
 
-      console.log('[AnimatedTerminal] User is whitelisted (status:', whitelistData.status, '), sending OTP...');
+      console.log('[AnimatedTerminal] Access granted, sending OTP...');
 
       // STEP 2: Send OTP code for ALL whitelisted users
-      // Don't use shouldCreateUser - let Supabase handle it based on whether user exists
-      const { error } = await supabase.auth.signInWithOtp({ 
+      const { error } = await supabase.auth.signInWithOtp({
         email: normalizedEmail,
         options: {
-          // Don't specify shouldCreateUser - let Supabase decide
+          shouldCreateUser: false, // Accounts are provisioned by rooms-sync/admin — never on login
           emailRedirectTo: undefined // No redirect, just OTP code
         }
       });
