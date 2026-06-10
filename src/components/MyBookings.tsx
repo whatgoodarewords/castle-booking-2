@@ -26,6 +26,11 @@ import { CreditsSection } from './BookingSummary/components/CreditsSection';
 import { formatPriceDisplay } from './BookingSummary/BookingSummary.utils';
 import { MasonryGallery } from './shared/MasonryGallery';
 
+// Extend Stay is retired for 2026: the booking-open gate locks post-purchase
+// price/date rewrites (the permissive bookings UPDATE policy it relied on was
+// dropped in 20260610_booking_open_gate.sql). UI hidden, service code kept.
+const EXTEND_STAY_ENABLED = false;
+
 // Interface for accommodation images
 interface AccommodationImage {
   id: string;
@@ -1172,7 +1177,8 @@ export function MyBookings() {
         </div>
       )}
 
-      {extendingBooking && createPortal(
+      {/* Extend Stay modal — retired for 2026 (EXTEND_STAY_ENABLED) */}
+      {EXTEND_STAY_ENABLED && extendingBooking && createPortal(
         <AnimatePresence>
           <motion.div
             initial={{ opacity: 0 }}
@@ -1875,8 +1881,8 @@ export function MyBookings() {
         document.body
       )}
 
-      {/* Discount Modal for Extension */}
-      {extendingBooking && extensionOnlyWeeks.length > 0 && (
+      {/* Discount Modal for Extension — retired for 2026 (EXTEND_STAY_ENABLED) */}
+      {EXTEND_STAY_ENABLED && extendingBooking && extensionOnlyWeeks.length > 0 && (
         <DiscountModal
           isOpen={showDiscountModal}
           onClose={() => setShowDiscountModal(false)}

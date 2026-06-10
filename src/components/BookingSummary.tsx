@@ -28,7 +28,8 @@ import { usePricing } from './BookingSummary/BookingSummary.hooks';
 import { StayDetails } from './BookingSummary/components/StayDetails';
 import { AccommodationSection } from './BookingSummary/components/AccommodationSection';
 import { GardenAddonSection } from './BookingSummary/components/GardenAddonSection';
-import { CreditsSection } from './BookingSummary/components/CreditsSection';
+// CreditsSection retired for 2026 — credits are zeroed and the column is locked
+// (see 20260610_booking_open_gate.sql); import kept out so the UI can't resurface.
 import { ConfirmButtons } from './BookingSummary/components/ConfirmButtons';
 
 // Import utils
@@ -98,7 +99,7 @@ export function BookingSummary({
 
   // --- State for Credits ---
   const [creditsToUse, setCreditsToUse] = useState<number>(0);
-  const [creditsEnabled, setCreditsEnabled] = useState<boolean>(true); // Default to using credits
+  const [creditsEnabled] = useState<boolean>(false); // Credits retired for 2026 — keep off so the auto-apply effect never deducts them
   const { credits: availableCredits, loading: creditsLoading, refresh: refreshCredits } = useCredits();
   
   // --- ADDED: Track if user has manually adjusted credits ---
@@ -127,12 +128,8 @@ export function BookingSummary({
     setCreditsToUse(value);
   }, []);
   
-  // --- Manual credit adjustment function ---
-  const setCreditsToUseManually = useCallback((value: number) => {
-    setCreditsToUse(value);
-    setUserHasManuallyAdjustedCredits(true);
-  }, []);
-  
+  // --- Manual credit adjustment was only reachable through CreditsSection — retired for 2026 ---
+
   // Track refreshCredits calls
   const refreshCreditsWithLogging = useCallback(async () => {
     try {
@@ -1420,18 +1417,7 @@ Please manually create the booking for this user or process a refund.`;
                   </div>
                 </div>
 
-                {/* Credits Section */}
-                                  <CreditsSection
-                    availableCredits={availableCredits}
-                    creditsLoading={creditsLoading}
-                    creditsEnabled={creditsEnabled}
-                    setCreditsEnabled={setCreditsEnabled}
-                    creditsToUse={creditsToUse}
-                    setCreditsToUse={setCreditsToUseManually}
-                    pricing={pricing}
-                    finalAmountAfterCredits={finalAmountAfterCredits}
-                  />
-
+                {/* Credits Section — retired for 2026 (credits zeroed + column locked; rooms are paid in full) */}
 
                 {/* Confirm Buttons */}
                 <ConfirmButtons
