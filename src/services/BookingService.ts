@@ -32,16 +32,18 @@ class BookingService {
       const result = await supabase
         .from('accommodations')
         .select('*')
+        .eq('archived', false) // glamping retired for 2026
         .order('display_order', { ascending: true });
-      
+
       if (result.error) {
         console.error('[BookingService] Error fetching accommodations:', result.error);
         console.log('[BookingService] Attempting fallback query without ordering...');
-        
+
         // Fallback: try without ordering
         const fallbackResult = await supabase
           .from('accommodations')
-          .select('*');
+          .select('*')
+          .eq('archived', false);
           
         if (fallbackResult.error) {
           console.error('[BookingService] Fallback query also failed:', fallbackResult.error);

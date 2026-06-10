@@ -101,9 +101,9 @@ export function Book2Page() {
   
   // Initialize with pre-selected The Castle week
   const [selectedWeeks, setSelectedWeeks] = useState<Week[]>([{
-    id: 'castle-week-sept-2025',
-    startDate: new Date('2025-09-21T00:00:00Z'),
-    endDate: new Date('2025-09-26T00:00:00Z'),
+    id: 'castle-week-aug-2026',
+    startDate: new Date('2026-08-02T00:00:00Z'),
+    endDate: new Date('2026-08-07T00:00:00Z'),
     name: 'The Castle',
     status: 'available' as WeekStatus,
     isCustom: false,
@@ -254,9 +254,9 @@ export function Book2Page() {
 
   // HARDCODED SINGLE WEEK - No calendar hook needed
   const castleWeek: Week = {
-    id: 'castle-week-sept-2025',
-    startDate: new Date('2025-09-21T00:00:00Z'),
-    endDate: new Date('2025-09-26T00:00:00Z'), // End date at midnight (start of 26th)
+    id: 'castle-week-aug-2026',
+    startDate: new Date('2026-08-02T00:00:00Z'),
+    endDate: new Date('2026-08-07T00:00:00Z'), // End date at midnight (start of the 7th)
     name: 'The Castle',
     status: 'available' as WeekStatus,
     isCustom: false,
@@ -891,7 +891,7 @@ export function Book2Page() {
                   <div className="flex flex-wrap items-center justify-center gap-3">
                     {/* Increased font size for the header */}
                     <h2 className="text-2xl sm:text-3xl font-display font-light text-primary text-center">
-                      The Castle · September 21-26, 2025
+                      The Castle · August 2-7, 2026
                     </h2>
                   </div>
 
@@ -948,7 +948,7 @@ export function Book2Page() {
               
               {/* Garden Decompression Addon - MOVED AFTER accommodations */}
               <GardenDecompressionAddon
-                castleEndDate={new Date('2025-09-26T00:00:00Z')}
+                castleEndDate={new Date('2026-08-07T00:00:00Z')}
                 onSelectAddon={setSelectedGardenAddon}
                 selectedAddon={selectedGardenAddon}
               />
