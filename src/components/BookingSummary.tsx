@@ -34,6 +34,12 @@ import { ConfirmButtons } from './BookingSummary/components/ConfirmButtons';
 // Import utils
 import { formatPriceDisplay } from './BookingSummary/BookingSummary.utils';
 
+// 2026 booking-open gate: the bookings table trigger raises BOOKING_NOT_OPEN
+// before booking_opens_at for non-patrons — surface it as friendly copy.
+const BOOKING_NOT_OPEN_MESSAGE = "Booking isn't open yet — rooms open for booking on July 19.";
+const isBookingNotOpenError = (err: unknown): boolean =>
+  String((err as { message?: unknown } | null)?.message ?? err ?? '').includes('BOOKING_NOT_OPEN');
+
 export function BookingSummary({
   selectedWeeks,
   selectedAccommodation,
@@ -42,7 +48,8 @@ export function BookingSummary({
   seasonBreakdown: initialSeasonBreakdown,
   calculatedWeeklyAccommodationPrice,
   gardenAddon,
-  onClearGardenAddon
+  onClearGardenAddon,
+  bookingLocked = false
 }: BookingSummaryProps) {
   // --- REMOVED: Track component renders (no longer needed) ---
   // Helper function to format dates consistently (needed for the modal)
@@ -973,7 +980,7 @@ Please manually create the booking for this user or process a refund.`;
         err
       });
       // Don't re-throw any errors - we've handled them gracefully above
-      setErrorWithLogging('An error occurred. Please try again.');
+      setErrorWithLogging(isBookingNotOpenError(err) ? BOOKING_NOT_OPEN_MESSAGE : 'An error occurred. Please try again.');
       setIsBookingWithLogging(false);
     }
   }, [selectedAccommodation, selectedWeeks, selectedCheckInDate, navigate, pricing.totalAmount, creditsToUse, refreshCreditsWithLogging, userEmail, onClearWeeks, onClearAccommodation, bookingService, finalAmountAfterCredits]);
@@ -1131,6 +1138,13 @@ Please manually create the booking for this user or process a refund.`;
             
           } catch (bookingErr) {
             console.error('[BOOKING_FLOW] STEP 3.5 WARNING: Could not create pending booking:', bookingErr);
+            // 2026 booking-open gate: stop here instead of proceeding to payment
+            if (isBookingNotOpenError(bookingErr)) {
+              console.warn('[BOOKING_FLOW] STEP 3.5 BLOCKED: booking gate is closed (BOOKING_NOT_OPEN)');
+              setErrorWithLogging(BOOKING_NOT_OPEN_MESSAGE);
+              setIsBookingWithLogging(false);
+              return;
+            }
             // Check if this is the no_new_pending_bookings constraint
             if (bookingErr && typeof bookingErr === 'object' && 'code' in bookingErr && bookingErr.code === '23514') {
               console.log('[BOOKING_FLOW] Database constraint preventing pending bookings - will create booking after payment');
@@ -1175,7 +1189,7 @@ Please manually create the booking for this user or process a refund.`;
       setShowStripeModalWithLogging(true);
     } catch (err) {
       console.error('[BOOKING_FLOW] Error in handleConfirmClick:', err);
-      setErrorWithLogging('An error occurred. Please try again.');
+      setErrorWithLogging(isBookingNotOpenError(err) ? BOOKING_NOT_OPEN_MESSAGE : 'An error occurred. Please try again.');
       setIsBookingWithLogging(false); // Reset booking flag on error
       
       // Clean up any pending booking if it was created
@@ -1429,6 +1443,7 @@ Please manually create the booking for this user or process a refund.`;
                   creditsToUse={creditsToUse}
                   isAdmin={isAdmin}
                   permissionsLoading={permissionsLoading}
+                  bookingLocked={bookingLocked}
                   onConfirm={handleConfirmClick}
                   onAdminConfirm={handleAdminConfirm}
                 />

@@ -25,6 +25,7 @@ import { areSameWeeks } from '../utils/dates';
 import { clsx } from 'clsx';
 import { calculateDaysBetween } from '../utils/dates';
 import { bookingService } from '../services/BookingService';
+import { supabase } from '../lib/supabase';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { InfoBox } from '../components/InfoBox';
 import { useUserPermissions } from '../hooks/useUserPermissions';
@@ -186,10 +187,63 @@ export function Book2Page() {
   const combinedDiscount = calculateCombinedDiscount(selectedWeeks);
 
   const { session, isLoading: sessionLoading } = useSession();
-  
+
   const { isAdmin, isLoading: permissionsLoading } = useUserPermissions(session);
-  
+
   const isMobile = window.innerWidth < 768;
+
+  // --- 2026 booking-open gate: browse mode until booking_opens_at (patrons/admins exempt) ---
+  const [bookingOpensAt, setBookingOpensAt] = useState<Date | null>(null);
+  const [bookingTier, setBookingTier] = useState<string | null>(null);
+  const [bookingGateLoaded, setBookingGateLoaded] = useState(false);
+
+  useEffect(() => {
+    if (sessionLoading) return;
+    const userId = session?.user?.id;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const [settingsResult, profileResult] = await Promise.all([
+          supabase.from('settings').select('value').eq('key', 'booking_opens_at').maybeSingle(),
+          userId
+            ? supabase.from('profiles').select('booking_tier').eq('id', userId).maybeSingle()
+            : Promise.resolve({ data: null }),
+        ]);
+        if (cancelled) return;
+        const opensAtValue = (settingsResult.data as { value?: string } | null)?.value;
+        const parsedOpensAt = opensAtValue ? new Date(opensAtValue) : null;
+        setBookingOpensAt(parsedOpensAt && !isNaN(parsedOpensAt.getTime()) ? parsedOpensAt : null);
+        setBookingTier((profileResult.data as { booking_tier?: string | null } | null)?.booking_tier ?? null);
+      } catch (error) {
+        console.error('[Book2Page] Error loading booking gate state:', error);
+        // Leave defaults (no opens-at, no tier) — locked for non-patrons, fail closed
+      } finally {
+        if (!cancelled) setBookingGateLoaded(true);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [session?.user?.id, sessionLoading]);
+
+  const bookingLocked = useMemo(() => {
+    if (!bookingGateLoaded) return false; // Don't flash the lock while loading
+    if (isAdmin || bookingTier === 'PATRON') return false;
+    if (!bookingOpensAt) return true; // Missing settings row = locked for non-patrons
+    return Date.now() < bookingOpensAt.getTime();
+  }, [bookingGateLoaded, isAdmin, bookingTier, bookingOpensAt]);
+
+  const daysUntilOpen = useMemo(() => {
+    if (!bookingOpensAt) return null;
+    return Math.max(0, Math.ceil((bookingOpensAt.getTime() - Date.now()) / 86400000));
+  }, [bookingOpensAt]);
+
+  const bookingCountdownLabel = daysUntilOpen === null
+    ? 'ROOMS OPEN JULY 19'
+    : daysUntilOpen === 0
+      ? 'ROOMS OPEN TODAY'
+      : `ROOMS OPEN IN ${daysUntilOpen} ${daysUntilOpen === 1 ? 'DAY' : 'DAYS'}`;
+  // --- END: 2026 booking-open gate ---
 
   // --- START: Normalize date specifically for the calendar hook ---
   const calendarStartDate = startOfMonthUTC(currentMonth);
@@ -708,7 +762,16 @@ export function Book2Page() {
       )}
       
       <div className="container mx-auto py-4 xs:py-6 sm:py-8 px-4">
-        
+
+        {/* 2026 booking-open gate: browse freely, booking unlocks July 19 (patrons are in already) */}
+        {bookingLocked && (
+          <div className="bg-amber-900/20 border border-amber-700/30 rounded-sm p-3 mb-4">
+            <p className="text-sm text-amber-200 font-mono text-center">
+              {bookingCountdownLabel} · July 19 — patrons are choosing now
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 xs:gap-5 sm:gap-6">
           {/* Left Column - Calendar and Cabin Selector */}
           <div className="lg:col-span-2">
@@ -908,6 +971,7 @@ export function Book2Page() {
                     calculatedWeeklyAccommodationPrice={selectedAccommodation ? (weeklyAccommodationInfo[selectedAccommodation]?.price ?? selectedAccommodationObject?.base_price ?? 0) : null}
                     gardenAddon={selectedGardenAddon}
                     onClearGardenAddon={() => setSelectedGardenAddon(null)}
+                    bookingLocked={bookingLocked}
                   />
                 ) : (
                   <div className="text-secondary text-sm xs:text-sm font-mono">
