@@ -56,7 +56,7 @@ BEGIN
        AND base_price > 0;
 
     INSERT INTO public.settings (key, value)
-    VALUES ('2026_pricing_applied', now()::text);
+    VALUES ('2026_pricing_applied', to_jsonb(now()::text));
 
   END IF;
 END $$;

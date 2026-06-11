@@ -31,7 +31,7 @@ const ADMIN_EMAILS = [
 ]
 
 function getSupabaseAdminClient(): SupabaseClient {
-  const supabaseUrl = Deno.env.get('BACKEND_URL')
+  const supabaseUrl = Deno.env.get('BACKEND_URL') ?? Deno.env.get('SUPABASE_URL')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
   if (!supabaseUrl || !serviceRoleKey) {

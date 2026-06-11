@@ -52,7 +52,7 @@ REVOKE ALL ON public.settings FROM anon, authenticated;
 GRANT SELECT ON public.settings TO authenticated;
 
 INSERT INTO public.settings (key, value)
-VALUES ('booking_opens_at', '2026-07-19T10:00:00+02:00')
+VALUES ('booking_opens_at', to_jsonb('2026-07-19T10:00:00+02:00'::text))
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 
 -- ----------------------------------------------------------------------------
@@ -119,7 +119,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  SELECT s.value::timestamptz
+  SELECT trim(both '"' from s.value::text)::timestamptz
     INTO opens_at
     FROM public.settings s
    WHERE s.key = 'booking_opens_at';
