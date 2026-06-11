@@ -41,4 +41,4 @@
     Access-Control-Allow-Methods = "*"
     Access-Control-Allow-Headers = "*"
     Content-Security-Policy = "default-src 'self'; connect-src 'self' https://*.stripe.com https://api.stripe.com https://js.stripe.com https://*.supabase.co wss://*.supabase.co; script-src 'self' https://js.stripe.com https://m.stripe.network https://hcaptcha.com https://*.hcaptcha.com 'unsafe-inline'; worker-src 'self' blob:; frame-src 'self' https://js.stripe.com https://payments.stripe.com https://hcaptcha.com https://*.hcaptcha.com; img-src 'self' data: https: https://*.stripe.com; style-src 'self' 'unsafe-inline' https://js.stripe.com https://fonts.googleapis.com; font-src 'self' https://js.stripe.com https://fonts.gstatic.com;"
-    Permissions-Policy = "payment=(self 'https://js.stripe.com'), fullscreen=(self)"
+    Permissions-Policy = 'payment=(self "https://js.stripe.com"), fullscreen=(self)'

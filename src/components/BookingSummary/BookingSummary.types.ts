@@ -29,6 +29,7 @@ export interface BookingSummaryProps {
   calculatedWeeklyAccommodationPrice: number | null;
   gardenAddon?: GardenAddon | null;
   onClearGardenAddon?: () => void;
+  bookingLocked?: boolean; // 2026 booking-open gate: browse mode until booking_opens_at
 }
 
 // Helper function to calculate pricing details

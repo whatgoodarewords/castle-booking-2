@@ -28,11 +28,18 @@ import { usePricing } from './BookingSummary/BookingSummary.hooks';
 import { StayDetails } from './BookingSummary/components/StayDetails';
 import { AccommodationSection } from './BookingSummary/components/AccommodationSection';
 import { GardenAddonSection } from './BookingSummary/components/GardenAddonSection';
-import { CreditsSection } from './BookingSummary/components/CreditsSection';
+// CreditsSection retired for 2026 — credits are zeroed and the column is locked
+// (see 20260610_booking_open_gate.sql); import kept out so the UI can't resurface.
 import { ConfirmButtons } from './BookingSummary/components/ConfirmButtons';
 
 // Import utils
 import { formatPriceDisplay } from './BookingSummary/BookingSummary.utils';
+
+// 2026 booking-open gate: the bookings table trigger raises BOOKING_NOT_OPEN
+// before booking_opens_at for non-patrons — surface it as friendly copy.
+const BOOKING_NOT_OPEN_MESSAGE = "Booking isn't open yet — rooms open for booking on July 19.";
+const isBookingNotOpenError = (err: unknown): boolean =>
+  String((err as { message?: unknown } | null)?.message ?? err ?? '').includes('BOOKING_NOT_OPEN');
 
 export function BookingSummary({
   selectedWeeks,
@@ -42,7 +49,8 @@ export function BookingSummary({
   seasonBreakdown: initialSeasonBreakdown,
   calculatedWeeklyAccommodationPrice,
   gardenAddon,
-  onClearGardenAddon
+  onClearGardenAddon,
+  bookingLocked = false
 }: BookingSummaryProps) {
   // --- REMOVED: Track component renders (no longer needed) ---
   // Helper function to format dates consistently (needed for the modal)
@@ -91,7 +99,7 @@ export function BookingSummary({
 
   // --- State for Credits ---
   const [creditsToUse, setCreditsToUse] = useState<number>(0);
-  const [creditsEnabled, setCreditsEnabled] = useState<boolean>(true); // Default to using credits
+  const [creditsEnabled] = useState<boolean>(false); // Credits retired for 2026 — keep off so the auto-apply effect never deducts them
   const { credits: availableCredits, loading: creditsLoading, refresh: refreshCredits } = useCredits();
   
   // --- ADDED: Track if user has manually adjusted credits ---
@@ -120,12 +128,8 @@ export function BookingSummary({
     setCreditsToUse(value);
   }, []);
   
-  // --- Manual credit adjustment function ---
-  const setCreditsToUseManually = useCallback((value: number) => {
-    setCreditsToUse(value);
-    setUserHasManuallyAdjustedCredits(true);
-  }, []);
-  
+  // --- Manual credit adjustment was only reachable through CreditsSection — retired for 2026 ---
+
   // Track refreshCredits calls
   const refreshCreditsWithLogging = useCallback(async () => {
     try {
@@ -973,7 +977,7 @@ Please manually create the booking for this user or process a refund.`;
         err
       });
       // Don't re-throw any errors - we've handled them gracefully above
-      setErrorWithLogging('An error occurred. Please try again.');
+      setErrorWithLogging(isBookingNotOpenError(err) ? BOOKING_NOT_OPEN_MESSAGE : 'An error occurred. Please try again.');
       setIsBookingWithLogging(false);
     }
   }, [selectedAccommodation, selectedWeeks, selectedCheckInDate, navigate, pricing.totalAmount, creditsToUse, refreshCreditsWithLogging, userEmail, onClearWeeks, onClearAccommodation, bookingService, finalAmountAfterCredits]);
@@ -1131,6 +1135,13 @@ Please manually create the booking for this user or process a refund.`;
             
           } catch (bookingErr) {
             console.error('[BOOKING_FLOW] STEP 3.5 WARNING: Could not create pending booking:', bookingErr);
+            // 2026 booking-open gate: stop here instead of proceeding to payment
+            if (isBookingNotOpenError(bookingErr)) {
+              console.warn('[BOOKING_FLOW] STEP 3.5 BLOCKED: booking gate is closed (BOOKING_NOT_OPEN)');
+              setErrorWithLogging(BOOKING_NOT_OPEN_MESSAGE);
+              setIsBookingWithLogging(false);
+              return;
+            }
             // Check if this is the no_new_pending_bookings constraint
             if (bookingErr && typeof bookingErr === 'object' && 'code' in bookingErr && bookingErr.code === '23514') {
               console.log('[BOOKING_FLOW] Database constraint preventing pending bookings - will create booking after payment');
@@ -1175,7 +1186,7 @@ Please manually create the booking for this user or process a refund.`;
       setShowStripeModalWithLogging(true);
     } catch (err) {
       console.error('[BOOKING_FLOW] Error in handleConfirmClick:', err);
-      setErrorWithLogging('An error occurred. Please try again.');
+      setErrorWithLogging(isBookingNotOpenError(err) ? BOOKING_NOT_OPEN_MESSAGE : 'An error occurred. Please try again.');
       setIsBookingWithLogging(false); // Reset booking flag on error
       
       // Clean up any pending booking if it was created
@@ -1406,18 +1417,7 @@ Please manually create the booking for this user or process a refund.`;
                   </div>
                 </div>
 
-                {/* Credits Section */}
-                                  <CreditsSection
-                    availableCredits={availableCredits}
-                    creditsLoading={creditsLoading}
-                    creditsEnabled={creditsEnabled}
-                    setCreditsEnabled={setCreditsEnabled}
-                    creditsToUse={creditsToUse}
-                    setCreditsToUse={setCreditsToUseManually}
-                    pricing={pricing}
-                    finalAmountAfterCredits={finalAmountAfterCredits}
-                  />
-
+                {/* Credits Section — retired for 2026 (credits zeroed + column locked; rooms are paid in full) */}
 
                 {/* Confirm Buttons */}
                 <ConfirmButtons
@@ -1429,6 +1429,7 @@ Please manually create the booking for this user or process a refund.`;
                   creditsToUse={creditsToUse}
                   isAdmin={isAdmin}
                   permissionsLoading={permissionsLoading}
+                  bookingLocked={bookingLocked}
                   onConfirm={handleConfirmClick}
                   onAdminConfirm={handleAdminConfirm}
                 />

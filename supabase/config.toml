@@ -2,6 +2,10 @@
 [functions.stripe-webhook]
 verify_jwt = false
 
+# rooms-sync authenticates with a shared secret (X-Sync-Secret), not a Supabase JWT.
+[functions.rooms-sync]
+verify_jwt = false
+
 [api]
 port = 54321
 schemas = ["public", "storage", "graphql_public"]
