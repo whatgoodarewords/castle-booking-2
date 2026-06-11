@@ -235,7 +235,7 @@ export function AnimatedTerminal({ onComplete }: Props) {
     <div 
       className="h-[100dvh] bg-cover bg-center bg-no-repeat flex items-center justify-center"
       style={{
-        backgroundImage: `url('https://guquxpxxycfmmlqajdyw.supabase.co/storage/v1/object/public/accommodations/castle-main.jpg')`
+        backgroundImage: `url('/images/castle-map.jpg')`
       }}
     >
       <div className="w-full h-full max-w-[1000px] relative flex items-center justify-center px-4" ref={containerRef}>
@@ -428,4 +428,3 @@ export function AnimatedTerminal({ onComplete }: Props) {
     </div>
   );
 }
-
