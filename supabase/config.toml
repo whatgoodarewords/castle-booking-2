@@ -25,7 +25,7 @@ pop3_port = 54326
 file_size_limit = "50MiB"
 
 [auth]
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["https://localhost:3000"]
+site_url = "https://rooms.castle.community"
+additional_redirect_urls = ["https://rooms.castle.community/**", "http://localhost:3000"]
 jwt_expiry = 3600
 enable_signup = true
